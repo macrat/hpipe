@@ -3,6 +3,8 @@ hpipe
 
 A simple tool for piping TCP connection over HTTP.
 
+This program uses [Upgrade header](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Upgrade) of HTTP to make a connection, so there is no protocol overhead.
+
 ## Usage
 ### HTTP -> TCP
 
