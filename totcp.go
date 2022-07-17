@@ -65,7 +65,7 @@ func (h HpipeServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Upgrade", ProtoName+"/"+ProtoVersion)
 	w.WriteHeader(http.StatusSwitchingProtocols)
 
-	client, _, err := hj.Hijack()
+	client, reader, err := hj.Hijack()
 	if err != nil {
 		log.Error().Err(err).Msg("failed to upgrade")
 		return
@@ -75,7 +75,11 @@ func (h HpipeServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log.Info().Msg("connection established")
 
 	stime := time.Now()
-	up, down, err := Pipe(client, target)
+	up, down, err := Pipe(ReadWriteCloser{
+		Reader: reader,
+		Writer: client,
+		Closer: client,
+	}, target)
 
 	log.Info().
 		Int64("up_bytes", up).
