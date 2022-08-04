@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
+	"golang.org/x/net/websocket"
 )
 
 func isUpgradable(upgradeHeader string) bool {
@@ -29,16 +30,52 @@ type HpipeServer struct {
 	Timeout time.Duration
 }
 
+func (h HpipeServer) ServeWebsocket(w http.ResponseWriter, r *http.Request) {
+	log := log.With().
+		Str("proto", "websocket").
+		Str("url", r.URL.String()).
+		Str("remote", r.RemoteAddr).
+		Str("client", r.UserAgent()).
+		Logger()
+
+	websocket.Handler(func(conn *websocket.Conn) {
+		target, err := net.DialTimeout("tcp", h.Target, h.Timeout)
+		var neterr net.Error
+		if errors.As(err, &neterr) && neterr.Timeout() {
+			log.Error().Err(err).Msg("timeout to connect target")
+			http.Error(w, "failed to establish tunnel", http.StatusGatewayTimeout)
+			return
+		} else if err != nil {
+			log.Error().Err(err).Msg("failed to connect target")
+			http.Error(w, "failed to establish tunnel", http.StatusBadGateway)
+			return
+		}
+		defer target.Close()
+
+		log.Info().Msg("connection established")
+
+		stime := time.Now()
+		up, down, err := Pipe(conn, target)
+
+		log.Info().
+			Int64("up_bytes", up).
+			Int64("down_bytes", down).
+			Dur("duration", time.Since(stime)).
+			Err(err).
+			Msg("connection closed")
+	}).ServeHTTP(w, r)
+}
+
 func (h HpipeServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	log := log.With().
+		Str("proto", "hpipe").
 		Str("url", r.URL.String()).
 		Str("remote", r.RemoteAddr).
 		Str("client", r.UserAgent()).
 		Logger()
 
 	if !isUpgradable(r.Header.Get("upgrade")) {
-		log.Info().Msg("failed to upgrade")
-		http.Error(w, "upgrade required", http.StatusUpgradeRequired)
+		h.ServeWebsocket(w, r)
 		return
 	}
 

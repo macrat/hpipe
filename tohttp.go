@@ -12,13 +12,14 @@ import (
 	"time"
 
 	"github.com/rs/zerolog/log"
+	"golang.org/x/net/websocket"
 )
 
 type HpipeClient struct {
 	Timeout time.Duration
 }
 
-func (h HpipeClient) Dial(u *url.URL) (io.ReadWriteCloser, error) {
+func (h HpipeClient) DialHTTP(u *url.URL) (io.ReadWriteCloser, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), h.Timeout)
 	defer cancel()
 
@@ -75,6 +76,31 @@ func (h HpipeClient) Dial(u *url.URL) (io.ReadWriteCloser, error) {
 		Writer: conn,
 		Closer: conn,
 	}, nil
+}
+
+func (h HpipeClient) DialWebsocket(u *url.URL) (io.ReadWriteCloser, error) {
+	u2 := *u
+	if u2.Scheme == "wss" {
+		u2.Scheme = "https"
+	} else {
+		u2.Scheme = "http"
+	}
+	u2.Scheme = "http"
+
+	conn, err := websocket.Dial(u.String(), "", u2.String())
+	if err != nil {
+		return nil, fmt.Errorf("%w: %s", ErrConnect, err)
+	}
+
+	return conn, nil
+}
+
+func (h HpipeClient) Dial(u *url.URL) (io.ReadWriteCloser, error) {
+	if u.Scheme == "ws" || u.Scheme == "wss" {
+		return h.DialWebsocket(u)
+	} else {
+		return h.DialHTTP(u)
+	}
 }
 
 func stdio2http(stdio io.ReadWriteCloser, target string) error {
