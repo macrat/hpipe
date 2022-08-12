@@ -25,6 +25,13 @@ func Pipe(client, server io.ReadWriteCloser) (up, down int64, err error) {
 	defer close(upch)
 	defer close(downch)
 
+	if client == nil {
+		panic("client is nil");
+	}
+	if server == nil {
+		panic("server is nil");
+	}
+
 	go singlePipe(client, server, upch)
 	go singlePipe(server, client, downch)
 

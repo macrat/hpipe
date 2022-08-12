@@ -103,6 +103,32 @@ func (h HpipeClient) Dial(u *url.URL) (io.ReadWriteCloser, error) {
 	}
 }
 
+func (h HpipeClient) ServeTCP(conn net.Conn, target *url.URL) {
+	defer conn.Close()
+
+	log := log.With().
+		Str("remote", conn.RemoteAddr().String()).
+		Logger()
+
+	server, err := h.Dial(target)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to establish connection")
+		return
+	}
+
+	log.Info().Msg("connection established")
+
+	stime := time.Now()
+	up, down, err := Pipe(conn, server)
+
+	log.Info().
+		Int64("up_bytes", up).
+		Int64("down_bytes", down).
+		Dur("duration", time.Since(stime)).
+		Err(err).
+		Msg("connection closed")
+}
+
 func stdio2http(stdio io.ReadWriteCloser, target string) error {
 	u, err := url.Parse(target)
 	if err != nil {
@@ -126,33 +152,15 @@ func tcp2http(listen string, target *url.URL) error {
 		return err
 	}
 
-	dialer := HpipeClient{1 * time.Minute}
+	client := HpipeClient{1 * time.Minute}
 
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
-			return fmt.Errorf("failed to accept connection: %w", err)
+			log.Error().Err(err).Msg("failed to accept connection")
+			continue
 		}
 
-		log := log.With().
-			Str("remote", conn.RemoteAddr().String()).
-			Logger()
-
-		server, err := dialer.Dial(target)
-		if err != nil {
-			log.Error().Msg("failed to establish connection")
-		}
-
-		log.Info().Msg("connection established")
-
-		stime := time.Now()
-		up, down, err := Pipe(conn, server)
-
-		log.Info().
-			Int64("up_bytes", up).
-			Int64("down_bytes", down).
-			Dur("duration", time.Since(stime)).
-			Err(err).
-			Msg("connection closed")
+		go client.ServeTCP(conn, target)
 	}
 }

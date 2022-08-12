@@ -81,7 +81,7 @@ func main() {
 	case *listen != "":
 		target := flag.Args()[0]
 		u, err := url.Parse(target)
-		if err == nil {
+		if err == nil && (u.Scheme == "http" || u.Scheme == "https" || u.Scheme == "ws" || u.Scheme == "wss") {
 			err = tcp2http(*listen, u)
 		} else {
 			err = http2tcp(*listen, target)

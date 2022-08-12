@@ -89,7 +89,7 @@ Host your-server.example.com
 	ProxyCommand hpipe http://%h:%p
 	#ProxyCommand hpipe ws://%h:%p
 
-$ echo 'export http_proxy=http://your-proxy.example.com' >> ~/.bashrc
+$ echo 'export HTTP_PROXY=http://your-proxy.example.com' >> ~/.bashrc
 ```
 
 Connect SSH.
