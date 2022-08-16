@@ -26,10 +26,10 @@ func Pipe(client, server io.ReadWriteCloser) (up, down int64, err error) {
 	defer close(downch)
 
 	if client == nil {
-		panic("client is nil");
+		panic("client is nil")
 	}
 	if server == nil {
-		panic("server is nil");
+		panic("server is nil")
 	}
 
 	go singlePipe(client, server, upch)

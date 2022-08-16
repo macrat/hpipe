@@ -55,7 +55,7 @@ func (h HpipeServer) ServeWebsocket(w http.ResponseWriter, r *http.Request) {
 		log.Info().Msg("connection established")
 
 		stime := time.Now()
-		up, down, err := Pipe(conn, target)
+		up, down, err := Pipe((*WSReadWriteCloser)(conn), target)
 
 		log.Info().
 			Int64("up_bytes", up).

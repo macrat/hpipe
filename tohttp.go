@@ -92,7 +92,7 @@ func (h HpipeClient) DialWebsocket(u *url.URL) (io.ReadWriteCloser, error) {
 		return nil, fmt.Errorf("%w: %s", ErrConnect, err)
 	}
 
-	return conn, nil
+	return (*WSReadWriteCloser)(conn), nil
 }
 
 func (h HpipeClient) Dial(u *url.URL) (io.ReadWriteCloser, error) {
