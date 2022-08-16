@@ -80,7 +80,11 @@ func (h HpipeServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !isUpgradable(r.Header.Get("upgrade")) {
+	if r.Header.Get("upgrade") == "" {
+		log.Info().Msg("serve working page")
+		w.Write([]byte("hpipe is working\n"))
+		return
+	} else if !isUpgradable(r.Header.Get("upgrade")) {
 		h.ServeWebsocket(w, r)
 		return
 	}
