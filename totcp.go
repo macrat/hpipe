@@ -74,6 +74,12 @@ func (h HpipeServer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		Str("client", r.UserAgent()).
 		Logger()
 
+	if r.URL.Path != "/" {
+		log.Info().Msg("not found")
+		http.NotFound(w, r)
+		return
+	}
+
 	if !isUpgradable(r.Header.Get("upgrade")) {
 		h.ServeWebsocket(w, r)
 		return
